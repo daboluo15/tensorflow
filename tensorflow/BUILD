@@ -161,7 +161,7 @@ config_setting(
 
 config_setting(
     name = "windows",
-    values = {"cpu": "x64_windows"},
+    values = {"cpu": "x86_32_windows"},
     visibility = ["//visibility:public"],
 )
 

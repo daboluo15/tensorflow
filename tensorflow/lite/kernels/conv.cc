@@ -473,6 +473,8 @@ void EvalQuantized(TfLiteContext* context, TfLiteNode* node,
                    TfLiteTensor* filter, TfLiteTensor* bias,
                    TfLiteTensor* im2col, TfLiteTensor* hwcn_weights,
                    TfLiteTensor* output) {
+//xxxbo the following code breaks the win32 build
+#if 0
   auto input_offset = -input->params.zero_point;
   auto filter_offset = -filter->params.zero_point;
   auto output_offset = output->params.zero_point;
@@ -529,6 +531,34 @@ void EvalQuantized(TfLiteContext* context, TfLiteNode* node,
       break;
     }
   }
+#else //xxxbo: this part is copied from tensorflow\lite\experimental\micro\kernels\conv.cc L:119~149
+        // and solved the building problem, and also solve the random detection result 
+  const int32_t input_offset = -input->params.zero_point;
+  const int32_t filter_offset = -filter->params.zero_point;
+  const int32_t output_offset = output->params.zero_point;
+
+  ConvParams op_params;
+  op_params.padding_type = RuntimePaddingType(params->padding);
+  op_params.padding_values.width = data->padding.width;
+  op_params.padding_values.height = data->padding.height;
+  op_params.stride_width = params->stride_width;
+  op_params.stride_height = params->stride_height;
+  op_params.dilation_width_factor = params->dilation_width_factor;
+  op_params.dilation_height_factor = params->dilation_height_factor;
+  op_params.input_offset = input_offset;
+  op_params.weights_offset = filter_offset;
+  op_params.output_offset = output_offset;
+  op_params.output_multiplier = data->output_multiplier;
+  op_params.output_shift = -data->output_shift;
+  op_params.quantized_activation_min = data->output_activation_min;
+  op_params.quantized_activation_max = data->output_activation_max;
+  reference_ops::Conv(op_params, GetTensorShape(input),
+                      GetTensorData<uint8_t>(input), GetTensorShape(filter),
+                      GetTensorData<uint8_t>(filter), GetTensorShape(bias),
+                      GetTensorData<int32_t>(bias), GetTensorShape(output),
+                      GetTensorData<uint8_t>(output), GetTensorShape(im2col),
+                      GetTensorData<uint8_t>(im2col), nullptr); 
+#endif //xxxbo end
 }
 
 template <KernelType kernel_type>

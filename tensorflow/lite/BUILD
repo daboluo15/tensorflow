@@ -31,8 +31,6 @@ config_setting(
 
 TFLITE_DEFAULT_COPTS = if_not_windows([
     "-Wall",
-    "-Wno-comment",
-    "-Wno-extern-c-compat",
 ])
 
 cc_library(
@@ -158,7 +156,7 @@ cc_library(
             "mmap_allocation_disabled.cc",
         ],
         "//conditions:default": [
-            "mmap_allocation.cc",
+            "mmap_allocation_disabled.cc",
         ],
     }),
     hdrs = [
@@ -449,17 +447,14 @@ cc_test(
 # Note: This target is not yet finalized, and the exact set of exported (C/C++)
 # APIs is subject to change.
 tflite_cc_shared_object(
-    name = "libtensorflowlite.so",
+    name = "libtensorflowlite.dll",
     linkopts = select({
         "//tensorflow:macos": [
             "-Wl,-exported_symbols_list,$(location //tensorflow/lite:tflite_exported_symbols.lds)",
             "-Wl,-install_name,@rpath/libtensorflowlite.so",
         ],
         "//tensorflow:windows": [],
-        "//conditions:default": [
-            "-Wl,-z,defs",
-            "-Wl,--version-script,$(location //tensorflow/lite:tflite_version_script.lds)",
-        ],
+        "//conditions:default": [],
     }),
     deps = [
         ":framework",

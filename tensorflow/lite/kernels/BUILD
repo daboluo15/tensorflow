@@ -103,7 +103,10 @@ EXTRA_EIGEN_COPTS = select({
         "/DEIGEN_HAS_C99_MATH",
         "/DEIGEN_AVOID_STL_ARRAY",
     ],
-    "//conditions:default": ["-Wno-error=reorder"],
+    "//conditions:default": [
+        "/DEIGEN_HAS_C99_MATH",
+        "/DEIGEN_AVOID_STL_ARRAY",
+    ],
 })
 
 cc_test(

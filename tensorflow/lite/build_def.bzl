@@ -24,10 +24,11 @@ def tflite_copts():
             "/wd4018",  # -Wno-sign-compare
         ],
         "//conditions:default": [
-            "-Wno-sign-compare",
+            "/DTFL_COMPILE_LIBRARY",
+            "/wd4018",
         ],
     }) + select({
-        clean_dep("//tensorflow:optimized"): ["-O3"],
+        clean_dep("//tensorflow:optimized"): [],
         "//conditions:default": [],
     }) + select({
         clean_dep("//tensorflow:android"): [
@@ -37,9 +38,7 @@ def tflite_copts():
         "//conditions:default": [],
     }) + select({
         clean_dep("//tensorflow:windows"): [],
-        "//conditions:default": [
-            "-fno-exceptions",  # Exceptions are unused in TFLite.
-        ],
+        "//conditions:default": [],
     })
 
     return copts
@@ -166,6 +165,7 @@ def tflite_cc_shared_object(
         visibility = visibility,
         tags = tags,
         per_os_targets = per_os_targets,
+        features = ["windows_export_all_symbols"],
     )
 
 def tf_to_tflite(name, src, options, out):

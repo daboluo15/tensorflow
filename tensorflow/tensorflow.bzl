@@ -285,13 +285,8 @@ def tf_copts(
     if android_optimization_level_override:
         android_copts.append(android_optimization_level_override)
     return (
-        if_not_windows([
-            "-DEIGEN_AVOID_STL_ARRAY",
-            "-Iexternal/gemmlowp",
-            "-Wno-sign-compare",
-            "-ftemplate-depth=900",
-        ]) +
-        (if_not_windows(["-fno-exceptions"]) if not allow_exceptions else []) +
+        if_not_windows([]) +
+        #(if_not_windows(["-fno-exceptions"]) if not allow_exceptions else []) +
         if_cuda(["-DGOOGLE_CUDA=1"]) +
         if_nvcc(["-DTENSORFLOW_USE_NVCC=1"]) +
         if_tensorrt(["-DGOOGLE_TENSORRT=1"]) +

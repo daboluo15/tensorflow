@@ -17,9 +17,7 @@ cc_library(
             "nnapi_delegate_disabled.cc",
         ],
         "//conditions:default": [
-            "nnapi_delegate.cc",
-            "quant_lstm_sup.h",
-            "quant_lstm_sup.cc",
+            "nnapi_delegate_disabled.cc",
         ],
     }),
     hdrs = [

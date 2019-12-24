@@ -36,7 +36,7 @@ cc_library(
             "nnapi_implementation_disabled.cc",
         ],
         "//conditions:default": [
-            "nnapi_implementation.cc",
+            "nnapi_implementation_disabled.cc",
         ],
     }),
     hdrs = [

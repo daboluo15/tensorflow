@@ -38,7 +38,8 @@ inline Integer floor_log2(Integer n) {
   if (sizeof(Integer) == 4) {
     _BitScanReverse(&result, n);
   } else {
-    _BitScanReverse64(&result, n);
+    //_BitScanReverse64(&result, n);
+    _BitScanReverse(&result, n);
   }
   return result;
 #else

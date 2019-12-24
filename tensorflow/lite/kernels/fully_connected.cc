@@ -516,6 +516,73 @@ TfLiteStatus EvalFloat(TfLiteContext* context, TfLiteNode* node,
   return kTfLiteOk;
 }
 
+//xxxbo the following code is copied from lite\experimental\micro\kernels\fully_connected.cc
+TfLiteStatus EvalQuantizedInt8(TfLiteContext* context, TfLiteNode* node,
+                               TfLiteFullyConnectedParams* params, OpData* data,
+                               const TfLiteTensor* input,
+                               const TfLiteTensor* filter,
+                               const TfLiteTensor* bias, TfLiteTensor* output) {
+  FullyConnectedParams op_params;
+  op_params.input_offset = -input->params.zero_point;
+  op_params.weights_offset = -filter->params.zero_point;
+  op_params.output_offset = output->params.zero_point;
+  op_params.output_multiplier = data->output_multiplier;
+  // TODO(b/138810107): Figure out whether output shift should be inverted
+  op_params.output_shift = -data->output_shift;
+  op_params.quantized_activation_min = data->output_activation_min;
+  op_params.quantized_activation_max = data->output_activation_max;
+
+  reference_integer_ops::FullyConnected(
+      op_params, GetTensorShape(input), GetTensorData<int8_t>(input),
+      GetTensorShape(filter), GetTensorData<int8_t>(filter),
+      GetTensorShape(bias), GetTensorData<int32_t>(bias),
+      GetTensorShape(output), GetTensorData<int8_t>(output));
+  return kTfLiteOk;
+}
+
+TfLiteStatus EvalQuantized(TfLiteContext* context, TfLiteNode* node,
+                           TfLiteFullyConnectedParams* params, OpData* data,
+                           const TfLiteTensor* input,
+                           const TfLiteTensor* filter, const TfLiteTensor* bias,
+                           TfLiteTensor* output) {
+  const int32_t input_offset = -input->params.zero_point;
+  const int32_t filter_offset = -filter->params.zero_point;
+  const int32_t output_offset = output->params.zero_point;
+
+  tflite::FullyConnectedParams op_params;
+  op_params.input_offset = input_offset;
+  op_params.weights_offset = filter_offset;
+  op_params.output_offset = output_offset;
+  op_params.output_multiplier = data->output_multiplier;
+  // Legacy ops used mixed left and right shifts. Now all are +ve-means-left.
+  op_params.output_shift = -data->output_shift;
+  op_params.quantized_activation_min = data->output_activation_min;
+  op_params.quantized_activation_max = data->output_activation_max;
+
+#define TF_LITE_FULLY_CONNECTED(output_data_type)                      \
+  reference_ops::FullyConnected(                                       \
+      op_params, GetTensorShape(input), GetTensorData<uint8_t>(input), \
+      GetTensorShape(filter), GetTensorData<uint8_t>(filter),          \
+      GetTensorShape(bias), GetTensorData<int32_t>(bias),              \
+      GetTensorShape(output), GetTensorData<output_data_type>(output))
+  switch (output->type) {
+    case kTfLiteUInt8:
+      TF_LITE_FULLY_CONNECTED(uint8_t);
+      break;
+    case kTfLiteInt16:
+      TF_LITE_FULLY_CONNECTED(int16_t);
+      break;
+    default:
+      context->ReportError(
+          context,
+          "Quantized FullyConnected expects output data type uint8 or int16");
+      return kTfLiteError;
+  }
+
+  return kTfLiteOk;
+}
+//xxxbo end 
+
 template <KernelType kernel_type>
 TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
   auto* params =
@@ -530,6 +597,8 @@ TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
           : nullptr;
   TfLiteTensor* output = GetOutput(context, node, kOutputTensor);
 
+//xxxbo the following code breaks the win32 build
+#if 0
   switch (filter->type) {
     case kTfLiteFloat32:
       return EvalFloat<kernel_type>(context, node, params, data, input, filter,
@@ -566,6 +635,25 @@ TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
                            TfLiteTypeGetName(filter->type));
       return kTfLiteError;
   }
+#else //xxxbo also copied from lite\experimental\kernels\fully_connected.cc
+  switch (filter->type) {  // Already know in/out types are same.
+    case kTfLiteFloat32:
+      return EvalFloat<kernel_type>(context, node, params, data, input, filter,
+                                    bias, output);
+    case kTfLiteInt8:
+      return EvalQuantizedInt8(context, node, params, data, input, filter, bias,
+                               output);
+
+    case kTfLiteUInt8:
+      return EvalQuantized(context, node, params, data, input, filter, bias,
+                           output);
+
+    default:
+      context->ReportError(context, "Type %d not currently supported.",
+                           filter->type);
+      return kTfLiteError;
+  }    
+#endif //xxxbo end
   return kTfLiteOk;
 }
 
